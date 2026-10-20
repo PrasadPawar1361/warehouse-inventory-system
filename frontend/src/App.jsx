@@ -1,195 +1,205 @@
 
-import { useState } from 'react'
-import './App.css'
+import { useState } from "react";
+import "./App.css";
 
 function App() {
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    username: '',
-    password: '',
-    confirmPassword: '',
-  })
-
-  const [showPassword, setShowPassword] = useState(false)
-  const [message, setMessage] = useState('')
+  const [isLogin, setIsLogin] = useState(true);
+  const [form, setForm] = useState({
+    username: "",
+    fullName: "",
+    password: "",
+  });
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function handleChange(event) {
-    const { name, value } = event.target
-
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }))
-
-    setMessage('')
+    setForm({ ...form, [event.target.name]: event.target.value });
   }
 
-  function handleSubmit(event) {
-    event.preventDefault()
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setMessage("");
+    setLoading(true);
 
-    if (formData.password.length < 8) {
-      setMessage('Password must contain at least 8 characters.')
-      return
+    try {
+      const endpoint = isLogin
+        ? "http://localhost:8080/api/auth/login"
+        : "http://localhost:8080/api/auth/signup";
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          isLogin
+            ? {
+                username: form.username,
+                password: form.password,
+              }
+            : {
+                username: form.username,
+                fullName: form.fullName,
+                password: form.password,
+              }
+        ),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || "Authentication failed.");
+      }
+
+      if (isLogin && data.token) {
+        localStorage.setItem("warehouseToken", data.token);
+      }
+
+      setMessage(
+        isLogin
+          ? "Login successful! You are authenticated."
+          : "Account created successfully! You can now sign in."
+      );
+
+      if (!isLogin) {
+        setIsLogin(true);
+        setForm({ username: form.username, fullName: "", password: "" });
+      }
+    } catch (error) {
+      setMessage(
+        error.message === "Failed to fetch"
+          ? "Cannot connect to the Java API. Make sure the backend is running."
+          : error.message
+      );
+    } finally {
+      setLoading(false);
     }
-
-    if (formData.password !== formData.confirmPassword) {
-      setMessage('Passwords do not match.')
-      return
-    }
-
-    setMessage('Form validated! Backend integration is still pending.')
   }
 
   return (
-    <main className="signup-page">
+    <main className="auth-page">
       <section className="brand-panel">
         <div className="brand">
-          <div className="brand-icon">W</div>
-          <span>Warehouse<span className="brand-highlight">IQ</span></span>
+          <span className="brand-icon">W</span>
+          <span>WareFlow</span>
         </div>
 
         <div className="brand-content">
-          <span className="eyebrow">SMARTER INVENTORY. BETTER CONTROL.</span>
-          <h1>Everything in its place. Every move in control.</h1>
+          <span className="eyebrow">SMART WAREHOUSE MANAGEMENT</span>
+          <h1>Manage your warehouse with confidence.</h1>
           <p>
-            A smarter way to manage warehouse inventory,
-            track assets and streamline operations.
+            Keep your inventory organized, streamline operations, and manage
+            QR-enabled products from one place.
           </p>
-
           <div className="feature-list">
-            <div className="feature">
-              <span className="feature-icon">✓</span>
-              Real-time inventory visibility
-            </div>
-            <div className="feature">
-              <span className="feature-icon">✓</span>
-              Intelligent asset tracking
-            </div>
-            <div className="feature">
-              <span className="feature-icon">✓</span>
-              Smarter warehouse operations
-            </div>
+            <div>✓ Inventory management</div>
+            <div>✓ QR code tracking</div>
+            <div>✓ Secure account access</div>
           </div>
         </div>
 
-        <p className="brand-footer">AI & Robotics Based Inventory Management</p>
+        <p className="brand-footer">Warehouse Management System</p>
       </section>
 
       <section className="form-panel">
-        <div className="form-container">
-          <div className="mobile-brand">Warehouse<span>IQ</span></div>
+        <div className="auth-card">
+          <div className="mobile-brand">WAREFLOW</div>
 
-          <div className="form-heading">
-            <span className="eyebrow">GET STARTED TODAY</span>
-            <h2>Create your account</h2>
-            <p>Enter your details to get started with the platform.</p>
+          <p className="form-eyebrow">
+            {isLogin ? "WELCOME BACK" : "GET STARTED"}
+          </p>
+
+          <h2>{isLogin ? "Sign in to your account" : "Create your account"}</h2>
+
+          <p className="form-description">
+            {isLogin
+              ? "Enter your credentials to continue."
+              : "Fill in your details to join your workspace."}
+          </p>
+
+          <div className="auth-tabs">
+            <button
+              type="button"
+              className={isLogin ? "tab active" : "tab"}
+              onClick={() => {
+                setIsLogin(true);
+                setMessage("");
+              }}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              className={!isLogin ? "tab active" : "tab"}
+              onClick={() => {
+                setIsLogin(false);
+                setMessage("");
+              }}
+            >
+              Sign Up
+            </button>
           </div>
 
           <form onSubmit={handleSubmit}>
-            <div className="field">
-              <label htmlFor="fullName">Full name</label>
-              <input
-                id="fullName"
-                name="fullName"
-                type="text"
-                placeholder="Enter your full name"
-                value={formData.fullName}
-                onChange={handleChange}
-                autoComplete="name"
-                required
-              />
-            </div>
+            <label htmlFor="username">Username</label>
+            <input
+              id="username"
+              name="username"
+              value={form.username}
+              onChange={handleChange}
+              placeholder="Enter your username"
+              autoComplete="username"
+              required
+            />
 
-            <div className="field">
-              <label htmlFor="email">Email address</label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                value={formData.email}
-                onChange={handleChange}
-                autoComplete="email"
-                required
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="username">Username</label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                placeholder="Choose a username"
-                value={formData.username}
-                onChange={handleChange}
-                autoComplete="username"
-                required
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="password">Password</label>
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="At least 8 characters"
-                value={formData.password}
-                onChange={handleChange}
-                autoComplete="new-password"
-                minLength={8}
-                required
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="confirmPassword">Confirm password</label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Enter your password again"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                autoComplete="new-password"
-                required
-              />
-            </div>
-
-            <label className="show-password">
-              <input
-                type="checkbox"
-                checked={showPassword}
-                onChange={(event) => setShowPassword(event.target.checked)}
-              />
-              Show passwords
-            </label>
-
-            {message && (
-              <p className="form-message" role="status">
-                {message}
-              </p>
+            {!isLogin && (
+              <>
+                <label htmlFor="fullName">Full name</label>
+                <input
+                  id="fullName"
+                  name="fullName"
+                  value={form.fullName}
+                  onChange={handleChange}
+                  placeholder="Enter your full name"
+                  autoComplete="name"
+                  required
+                />
+              </>
             )}
 
-            <button className="signup-button" type="submit">
-              Create account <span aria-hidden="true">→</span>
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="Enter your password"
+              autoComplete={isLogin ? "current-password" : "new-password"}
+              minLength={8}
+              required
+            />
+
+            <button className="submit-button" type="submit" disabled={loading}>
+              {loading
+                ? "Please wait..."
+                : isLogin
+                  ? "Sign In →"
+                  : "Create Account →"}
             </button>
           </form>
 
-          <p className="login-prompt">
-            Already have an account? <a href="/login">Sign in</a>
-          </p>
+          {message && (
+            <div className="message" role="status">
+              {message}
+            </div>
+          )}
 
-          <p className="terms">
-            By creating an account, you agree to your organization's
-            applicable terms and policies.
+          <p className="security-note">
+            Your account is verified by the Java backend.
           </p>
         </div>
       </section>
     </main>
-  )
+  );
 }
 
-export default App
+export default App;
